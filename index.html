@@ -160,6 +160,24 @@
   .filters .field{flex:1;min-width:170px}
   .filters .field label{margin-bottom:4px}
 
+  /* Multi-select */
+  .ms-wrap{position:relative;width:100%}
+  .ms-btn{width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;font-size:14px;background:#fff;color:var(--ink);font-family:inherit;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:.15s}
+  .ms-btn:hover{border-color:var(--accent)}
+  .ms-btn.has-selection{background:#fff5f7;border-color:#f9c6cf;color:var(--accent-strong);font-weight:600}
+  .ms-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ms-arr{font-size:10px;color:var(--muted);flex-shrink:0}
+  .ms-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(16,39,64,.15);z-index:50;display:none;max-height:300px;overflow:hidden;flex-direction:column}
+  .ms-panel.open{display:flex}
+  .ms-controls{padding:8px 10px;border-bottom:1px solid var(--line);display:flex;gap:6px}
+  .ms-controls button{flex:1;background:var(--chip);border:0;padding:6px 10px;border-radius:6px;font-size:11.5px;color:var(--ink-soft);cursor:pointer;font-family:inherit;font-weight:600;transition:.12s}
+  .ms-controls button:hover{background:#e2e8f0;color:var(--ink)}
+  .ms-list{flex:1;overflow-y:auto;padding:6px}
+  .ms-list label{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--ink);user-select:none}
+  .ms-list label:hover{background:var(--chip)}
+  .ms-list input[type=checkbox]{margin:0;accent-color:var(--accent);flex-shrink:0}
+  .ms-list .ms-empty{padding:14px;text-align:center;color:var(--muted);font-size:12px;font-style:italic}
+
   /* Charts */
   .charts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
   @media(max-width:880px){.charts-grid{grid-template-columns:1fr}}
@@ -190,6 +208,12 @@
   .panel-melhoria h3{color:var(--accent-strong)}
   .panel-bom{background:#f3fbf6;border:1px solid #c6e9d3;border-left:4px solid var(--ok)}
   .panel-bom h3{color:#15803d}
+  .rank-pos{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;font-weight:700;font-size:12px}
+  .rank-pos.r1{background:#fef3c7;color:#92400e}
+  .rank-pos.r2{background:#e0e7ff;color:#3730a3}
+  .rank-pos.r3{background:#dcfce7;color:#15803d}
+  .rank-pos.r4{background:#f1f5f9;color:#475569}
+  .score-bar{display:inline-block;height:6px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--ink));min-width:4px}
 
   /* Modal */
   .modal-overlay{position:fixed;inset:0;background:rgba(16,39,64,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;backdrop-filter:blur(2px)}
@@ -207,6 +231,11 @@
   .modal-grid .pair .val{color:var(--ink);font-weight:700;text-align:right}
   .modal-foot{padding:16px 26px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;background:#fbfcfe;border-radius:0 0 18px 18px}
   .modal-textarea{width:100%;min-height:90px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;font-family:inherit;font-size:13.5px;resize:vertical;color:var(--ink)}
+  .modal-form{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media(max-width:600px){.modal-form{grid-template-columns:1fr}}
+  .modal-field label{margin-bottom:4px}
+  .modal-field input,.modal-field select{width:100%;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;background:#fff;color:var(--ink);font-family:inherit}
+  .modal-field input:focus,.modal-field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(239,68,101,.15)}
 
   /* PDF / Print: evita cortar elementos visuais no meio */
   .chart-card,.stat,.panel-insights,.kpi,table tr{page-break-inside:avoid;break-inside:avoid}
@@ -221,7 +250,7 @@
   </div>
   <div class="actions">
     <button class="btn btn-primary" onclick="exportExcel()">Exportar Base</button>
-    <button class="btn btn-outline" onclick="scrollToSim()">Ajustar Ações</button>
+    <button class="btn btn-outline" onclick="scrollToSim()">Simular Ação</button>
     <button class="btn btn-danger" onclick="resetAll()">Limpar Painel</button>
   </div>
 </header>
@@ -229,6 +258,7 @@
 <nav class="tabs">
   <button class="tab active" data-tab="tabDim" onclick="switchTab('tabDim')">Dimensionamento</button>
   <button class="tab" data-tab="tabAnal" onclick="switchTab('tabAnal')">Análise de Ações</button>
+  <button class="tab" data-tab="tabAnalista" onclick="switchTab('tabAnalista')">Análise por Analista</button>
 </nav>
 
 <main>
@@ -341,24 +371,24 @@
     <div class="filters">
       <div class="field">
         <label>Responsável</label>
-        <select id="hRespFilter" onchange="renderTabela()"><option value="">Todos</option></select>
+        <div class="ms-wrap" data-ms-id="hRespFilter" data-default="Todos os responsáveis">
+          <button type="button" class="ms-btn" onclick="msToggle('hRespFilter')"><span class="ms-text">Todos os responsáveis</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('hRespFilter',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('hRespFilter',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
       </div>
       <div class="field">
-        <label>Cumprimento</label>
-        <select id="hCumprFilter" onchange="renderTabela()">
-          <option value="">Todos</option>
-          <option value="sim">Cumprida (concluída)</option>
-          <option value="nao">Não cumprida</option>
-        </select>
+        <label>SLA</label>
+        <div class="ms-wrap" data-ms-id="hCumprFilter" data-default="Todos">
+          <button type="button" class="ms-btn" onclick="msToggle('hCumprFilter')"><span class="ms-text">Todos</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('hCumprFilter',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('hCumprFilter',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
       </div>
       <div class="field">
         <label>Status</label>
-        <select id="hStatusFilter" onchange="renderTabela()">
-          <option value="">Todos os status</option>
-          <option value="planejada">Planejada</option>
-          <option value="andamento">Em andamento</option>
-          <option value="concluida">Concluída</option>
-        </select>
+        <div class="ms-wrap" data-ms-id="hStatusFilter" data-default="Todos os status">
+          <button type="button" class="ms-btn" onclick="msToggle('hStatusFilter')"><span class="ms-text">Todos os status</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('hStatusFilter',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('hStatusFilter',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
       </div>
       <button class="btn btn-ghost" onclick="limparFiltrosHist()">Limpar filtros</button>
     </div>
@@ -406,24 +436,31 @@
     <div class="filters">
       <div class="field">
         <label>Ação</label>
-        <select id="fAcao" onchange="renderAnalises()"><option value="">Todas as ações</option></select>
+        <div class="ms-wrap" data-ms-id="fAcao" data-default="Todas as ações">
+          <button type="button" class="ms-btn" onclick="msToggle('fAcao')"><span class="ms-text">Todas as ações</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('fAcao',true)">Selecionar todas</button><button type="button" onclick="msSelectAll('fAcao',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
       </div>
       <div class="field">
         <label>Responsável</label>
-        <select id="fResp" onchange="renderAnalises()"><option value="">Todos os responsáveis</option></select>
+        <div class="ms-wrap" data-ms-id="fResp" data-default="Todos os responsáveis">
+          <button type="button" class="ms-btn" onclick="msToggle('fResp')"><span class="ms-text">Todos os responsáveis</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('fResp',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('fResp',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
       </div>
       <div class="field">
         <label>Status</label>
-        <select id="fStatus" onchange="renderAnalises()">
-          <option value="">Todos os status</option>
-          <option value="planejada">Planejadas</option>
-          <option value="andamento">Em andamento</option>
-          <option value="concluida">Concluídas</option>
-        </select>
+        <div class="ms-wrap" data-ms-id="fStatus" data-default="Todos os status">
+          <button type="button" class="ms-btn" onclick="msToggle('fStatus')"><span class="ms-text">Todos os status</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('fStatus',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('fStatus',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
       </div>
       <div class="field">
         <label>Mês de início</label>
-        <select id="fMes" onchange="renderAnalises()"><option value="">Todos os meses</option></select>
+        <div class="ms-wrap" data-ms-id="fMes" data-default="Todos os meses">
+          <button type="button" class="ms-btn" onclick="msToggle('fMes')"><span class="ms-text">Todos os meses</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('fMes',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('fMes',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
       </div>
       <button class="btn btn-ghost" onclick="limparFiltros()">Limpar filtros</button>
     </div>
@@ -491,6 +528,137 @@
 
 </div>
 
+<!-- ============================================================
+     TAB 3: ANÁLISE POR ANALISTA
+============================================================ -->
+<div class="tab-pane" id="tabAnalista">
+
+  <section class="card" id="cardAnalista">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+      <div>
+        <h2>Análise por Analista</h2>
+        <div class="sub" style="margin-bottom:0">Desempenho, performance, SLA e ranking dos responsáveis pelas ações.</div>
+      </div>
+      <button class="btn btn-outline" onclick="exportAnalistaPDF()">📄 Exportar PDF</button>
+    </div>
+
+    <div class="filters">
+      <div class="field">
+        <label>Responsável</label>
+        <div class="ms-wrap" data-ms-id="aResp" data-default="Todos os responsáveis">
+          <button type="button" class="ms-btn" onclick="msToggle('aResp')"><span class="ms-text">Todos os responsáveis</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('aResp',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('aResp',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <div class="ms-wrap" data-ms-id="aStatus" data-default="Todos os status">
+          <button type="button" class="ms-btn" onclick="msToggle('aStatus')"><span class="ms-text">Todos os status</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('aStatus',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('aStatus',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Mês de início</label>
+        <div class="ms-wrap" data-ms-id="aMes" data-default="Todos os meses">
+          <button type="button" class="ms-btn" onclick="msToggle('aMes')"><span class="ms-text">Todos os meses</span><span class="ms-arr">▼</span></button>
+          <div class="ms-panel"><div class="ms-controls"><button type="button" onclick="msSelectAll('aMes',true)">Selecionar todos</button><button type="button" onclick="msSelectAll('aMes',false)">Limpar</button></div><div class="ms-list"></div></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="limparFiltrosAnalista()">Limpar filtros</button>
+    </div>
+
+    <div class="stat-grid" id="statGridAnalista"></div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h4>Atendimentos por responsável</h4>
+        <div class="chart-sub">Volume total previsto.</div>
+        <div class="chart-wrap"><canvas id="chartAVolume"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Ações por responsável</h4>
+        <div class="chart-sub">Quantidade de ações sob responsabilidade.</div>
+        <div class="chart-wrap"><canvas id="chartAAcoes"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>SLA por responsável (cumprido vs não cumprido)</h4>
+        <div class="chart-sub">Avaliação só considera ações com fim real preenchido.</div>
+        <div class="chart-wrap"><canvas id="chartASla"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Taxa de conclusão por responsável</h4>
+        <div class="chart-sub">% de ações concluídas sobre o total atribuído.</div>
+        <div class="chart-wrap"><canvas id="chartATaxa"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Engajamento médio por responsável</h4>
+        <div class="chart-sub">Média ponderada de % engajamento das ações.</div>
+        <div class="chart-wrap"><canvas id="chartAEng"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Performance score</h4>
+        <div class="chart-sub">Combinação de conclusão, SLA e engajamento.</div>
+        <div class="chart-wrap"><canvas id="chartAScore"></canvas></div>
+      </div>
+    </div>
+
+    <div class="ranking-card" style="margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px">
+      <h3 style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--ink)">🏆 Ranking dos Analistas</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px" id="rankingTable"></table>
+      </div>
+    </div>
+
+    <div class="panel-insights" style="margin-top:18px">
+      <h3>📌 Visão geral por analista</h3>
+      <ul id="painelAnalistaVisao"><li>Cadastre ações com responsável atribuído para gerar insights.</li></ul>
+    </div>
+    <div class="panel-insights panel-bom" style="margin-top:14px">
+      <h3>🌟 Destaques positivos</h3>
+      <ul id="painelAnalistaDestaque"><li>Sem destaques ainda.</li></ul>
+    </div>
+    <div class="panel-insights panel-melhoria" style="margin-top:14px">
+      <h3>🔧 Pontos de melhoria</h3>
+      <ul id="painelAnalistaMelhoria"><li>Tudo certo por aqui.</li></ul>
+    </div>
+
+    <div class="score-doc" style="margin-top:18px;background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:14px;padding:18px 22px">
+      <h3 style="margin:0 0 10px;font-size:13px;color:#92400e;text-transform:uppercase;letter-spacing:.5px;font-weight:700">📘 Como o Performance Score é calculado?</h3>
+      <p style="margin:0 0 10px;font-size:13px;color:#334155"><b>Faixa:</b> 0 a 100 pontos · <b>Quanto maior, melhor.</b></p>
+
+      <div style="background:#fff;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px">Fórmula</div>
+        <code style="display:block;font-size:13px;color:#102740;background:#fefce8;padding:8px 10px;border-radius:6px;font-family:Consolas,Monaco,monospace">Score = (Taxa de Conclusão × 40%) + (Taxa de SLA × 40%) + (Engajamento normalizado × 20%)</code>
+      </div>
+
+      <div style="font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px">Componentes</div>
+      <ul style="margin:0 0 14px;padding-left:20px;font-size:13px;line-height:1.7;color:#334155">
+        <li><b style="color:#102740">Taxa de Conclusão (40%)</b> — % das ações atribuídas ao analista que estão concluídas. Penaliza ações abertas há muito tempo sem conclusão.</li>
+        <li><b style="color:#102740">Taxa de SLA (40%)</b> — % das ações concluídas com <code>fim real ≤ fim previsto</code>. Quando o analista não tem nenhuma ação com fim real preenchido, esse componente usa <b>50 pontos (neutro)</b>.</li>
+        <li><b style="color:#102740">Engajamento normalizado (20%)</b> — engajamento médio × 2 (capado em 100). Ou seja, <b>50% de engajamento médio = 100 pontos</b> nessa componente. Não há ganho extra acima disso.</li>
+      </ul>
+
+      <div style="font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:8px">Faixas de leitura</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+        <div style="padding:10px 12px;background:#dcfce7;border-left:4px solid #16a34a;border-radius:8px"><div style="font-size:12px;font-weight:700;color:#15803d">80 – 100 · Excelente</div><div style="font-size:11.5px;color:#334155;margin-top:2px">Desempenho excepcional. Manter como referência e replicar boas práticas.</div></div>
+        <div style="padding:10px 12px;background:#dbeafe;border-left:4px solid #2563eb;border-radius:8px"><div style="font-size:12px;font-weight:700;color:#1d4ed8">60 – 79 · Bom</div><div style="font-size:11.5px;color:#334155;margin-top:2px">Performance dentro do esperado. Há oportunidades pontuais de melhoria.</div></div>
+        <div style="padding:10px 12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px"><div style="font-size:12px;font-weight:700;color:#92400e">40 – 59 · Atenção</div><div style="font-size:11.5px;color:#334155;margin-top:2px">Investigar gargalos. Pode ser SLA, conclusão ou baixo engajamento.</div></div>
+        <div style="padding:10px 12px;background:#fee2e2;border-left:4px solid #EF4465;border-radius:8px"><div style="font-size:12px;font-weight:700;color:#c8364f">0 – 39 · Risco</div><div style="font-size:11.5px;color:#334155;margin-top:2px">Performance crítica. Requer plano de ação imediato e acompanhamento de perto.</div></div>
+      </div>
+
+      <div style="font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px">Considerações importantes</div>
+      <ul style="margin:0;padding-left:20px;font-size:12.5px;line-height:1.7;color:#334155">
+        <li>Analistas com <b>poucas ações</b> (1 ou 2) podem ter score volátil — interpretar com cautela.</li>
+        <li>Ações sem responsável atribuído <b>não entram em nenhum analista</b>. Atribua um responsável para incluir no ranking.</li>
+        <li>O componente SLA só conta ações com <b>data de fim real preenchida</b>. Sem essa info, o score usa <b>50 pontos</b> (neutro) — nem premia nem penaliza.</li>
+        <li>O score não é uma avaliação completa do analista — é um indicador operacional. Use junto com contexto, complexidade das ações e fatores externos.</li>
+        <li>Mudanças no engajamento das ações (% engajamento) afetam diretamente o score do analista responsável.</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
 </main>
 
 <!-- ===== MODAL RESUMO ===== -->
@@ -507,7 +675,8 @@
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="copyResumo()">📋 Copiar</button>
       <button class="btn btn-outline" onclick="downloadResumo()">⬇ Baixar (.txt)</button>
-      <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicaoAcao()">💾 Salvar alterações</button>
     </div>
   </div>
 </div>
@@ -555,6 +724,63 @@ function scrollToSim(){switchTab('tabDim');setTimeout(()=>{const el=document.get
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 /* ============================================================
+   MULTI-SELECT (checkbox dropdown)
+============================================================ */
+function msGetValues(id){
+  return [...document.querySelectorAll(`[data-ms-id="${id}"] input[type=checkbox]:checked`)].map(c=>c.value);
+}
+function msSetOptions(id,options,onChange){
+  const wrap=document.querySelector(`[data-ms-id="${id}"]`);
+  if(!wrap)return;
+  const list=wrap.querySelector('.ms-list');
+  const defaultLabel=wrap.dataset.default||'Todos';
+  const prev=msGetValues(id);
+  list.innerHTML=options.length
+    ? options.map(o=>`<label><input type="checkbox" value="${escapeHtml(o.value)}" ${prev.includes(o.value)?'checked':''}/> <span>${escapeHtml(o.text)}</span></label>`).join('')
+    : '<div class="ms-empty">Nenhuma opção disponível</div>';
+  list.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change',()=>{msUpdateText(id);if(onChange)onChange()});
+  });
+  msUpdateText(id);
+}
+function msUpdateText(id){
+  const wrap=document.querySelector(`[data-ms-id="${id}"]`);
+  if(!wrap)return;
+  const sel=msGetValues(id);
+  const text=wrap.querySelector('.ms-text');
+  const btn=wrap.querySelector('.ms-btn');
+  const defaultLabel=wrap.dataset.default||'Todos';
+  if(sel.length===0){text.textContent=defaultLabel;btn.classList.remove('has-selection')}
+  else if(sel.length===1){
+    const lbl=wrap.querySelector(`input[value="${CSS.escape(sel[0])}"]`)?.parentElement?.querySelector('span')?.textContent;
+    text.textContent=lbl||'1 selecionado';
+    btn.classList.add('has-selection');
+  } else {
+    text.textContent=`${sel.length} selecionados`;
+    btn.classList.add('has-selection');
+  }
+}
+function msToggle(id){
+  const wrap=document.querySelector(`[data-ms-id="${id}"]`);
+  if(!wrap)return;
+  const panel=wrap.querySelector('.ms-panel');
+  document.querySelectorAll('.ms-panel.open').forEach(p=>{if(p!==panel)p.classList.remove('open')});
+  panel.classList.toggle('open');
+}
+function msSelectAll(id,val){
+  const checks=document.querySelectorAll(`[data-ms-id="${id}"] input[type=checkbox]`);
+  checks.forEach(c=>c.checked=val);
+  if(checks[0])checks[0].dispatchEvent(new Event('change'));
+  else msUpdateText(id);
+}
+function msClear(id){msSelectAll(id,false)}
+document.addEventListener('click',e=>{
+  document.querySelectorAll('[data-ms-id]').forEach(wrap=>{
+    if(!wrap.contains(e.target))wrap.querySelector('.ms-panel')?.classList.remove('open');
+  });
+});
+
+/* ============================================================
    TABS
 ============================================================ */
 function switchTab(id){
@@ -562,6 +788,7 @@ function switchTab(id){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));
   document.querySelectorAll('.tab-pane').forEach(x=>x.classList.toggle('active',x.id===id));
   if(id==='tabAnal')renderAnalises();
+  if(id==='tabAnalista')renderAnalistas();
 }
 
 /* ============================================================
@@ -833,12 +1060,14 @@ function updateAcao(id,field,value){
   if(field==='responsavel'){
     renderDatalistResp();
     if(STATE.activeTab==='tabAnal')renderAnalises();
+    if(STATE.activeTab==='tabAnalista')renderAnalistas();
   } else if(field==='status'){
     renderAll();
   } else if(field==='dataFimReal'){
     renderTabela();
     renderCalendar();
     if(STATE.activeTab==='tabAnal')renderAnalises();
+    if(STATE.activeTab==='tabAnalista')renderAnalistas();
   }
 }
 
@@ -863,6 +1092,7 @@ function renderAll(){
   renderCalendar();
   recalcSim();
   if(STATE.activeTab==='tabAnal')renderAnalises();
+  if(STATE.activeTab==='tabAnalista')renderAnalistas();
 }
 
 /* ============================================================
@@ -935,31 +1165,32 @@ function slaTagHtml(a){
 }
 
 function acoesHistoricoFiltradas(){
-  const fResp=document.getElementById('hRespFilter')?.value||'';
-  const fCumpr=document.getElementById('hCumprFilter')?.value||'';
-  const fStatus=document.getElementById('hStatusFilter')?.value||'';
+  const fResp=msGetValues('hRespFilter');
+  const fCumpr=msGetValues('hCumprFilter');
+  const fStatus=msGetValues('hStatusFilter');
   return STATE.acoes.filter(a=>{
-    if(fResp && (a.responsavel||'')!==fResp)return false;
-    if(fCumpr==='sim' && a.status!=='concluida')return false;
-    if(fCumpr==='nao' && a.status==='concluida')return false;
-    if(fStatus && a.status!==fStatus)return false;
+    if(fResp.length && !fResp.includes(a.responsavel||''))return false;
+    if(fStatus.length && !fStatus.includes(a.status))return false;
+    if(fCumpr.length){
+      const slaR=slaRealDias(a);
+      const slaP=slaPrevistoDias(a);
+      /* Sem fim real não há como avaliar SLA — exclui dos dois filtros específicos */
+      if(slaR===null||slaP===null)return false;
+      const cumprido=slaR<=slaP;
+      const ok=(fCumpr.includes('sim')&&cumprido)||(fCumpr.includes('nao')&&!cumprido);
+      if(!ok)return false;
+    }
     return true;
   });
 }
 
 function refreshHistFilterOptions(){
-  const fResp=document.getElementById('hRespFilter');
-  if(!fResp)return;
-  const curr=fResp.value;
   const resps=[...new Set(STATE.acoes.map(a=>a.responsavel).filter(Boolean))].sort();
-  fResp.innerHTML='<option value="">Todos</option>'+resps.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-  if([...fResp.options].some(o=>o.value===curr))fResp.value=curr;
+  msSetOptions('hRespFilter',resps.map(r=>({value:r,text:r})),renderTabela);
 }
 
 function limparFiltrosHist(){
-  document.getElementById('hRespFilter').value='';
-  document.getElementById('hCumprFilter').value='';
-  document.getElementById('hStatusFilter').value='';
+  ['hRespFilter','hCumprFilter','hStatusFilter'].forEach(id=>msClear(id));
   renderTabela();
 }
 
@@ -994,8 +1225,7 @@ function renderTabela(){
       <td>${fmtInt(total)}</td>
       <td>${fmtInt(dem)}</td>
       <td class="mini">
-        <button class="icon-btn info" title="Ver resumo" onclick="openModal('${a.id}')">📄</button>
-        <button class="icon-btn" title="Editar no simulador" onclick="editarAcao('${a.id}')">✏️</button>
+        <button class="icon-btn info" title="Editar / Ver resumo" onclick="openModal('${a.id}')">📝</button>
         <button class="icon-btn del" title="Excluir" onclick="excluirAcao('${a.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -1009,63 +1239,102 @@ function openModal(id){
   const a=STATE.acoes.find(x=>x.id===id);
   if(!a)return;
   STATE.modalAcaoId=id;
-  const total=a.base*(a.engajamento/100);
-  const dem=total/a.janela;
-  const pac=a.base/a.disparos;
-  const atendDisp=pac*(a.engajamento/100);
-  const fimPrev=dataFimPrevista(a);
-  const fimReal=a.dataFimReal?parseDate(a.dataFimReal):null;
-  const capDia=capacidadeDia();
-  const pctCap=Math.round(dem/capDia*100);
-  const statusLbl={planejada:'Planejada',andamento:'Em andamento',concluida:'Concluída'}[a.status];
-  const slaR=slaRealDias(a);
-  const slaP=slaPrevistoDias(a);
 
-  document.getElementById('modalTitle').textContent=a.nome;
+  document.getElementById('modalTitle').textContent=a.nome||'Editar ação';
   document.getElementById('modalBody').innerHTML=`
     <div class="modal-section">
       <h4>Identificação</h4>
-      <div class="modal-grid">
-        <div class="pair"><span class="lab">Status</span><span class="val">${statusLbl}</span></div>
-        <div class="pair"><span class="lab">Responsável</span><span class="val">${escapeHtml(a.responsavel||'—')}</span></div>
+      <div class="modal-form">
+        <div class="modal-field"><label>Nome da ação</label><input id="mNome" type="text" value="${escapeHtml(a.nome)}" oninput="recalcModalDerived()"></div>
+        <div class="modal-field"><label>Responsável</label><input id="mResp" list="respList" type="text" value="${escapeHtml(a.responsavel||'')}"></div>
+        <div class="modal-field"><label>Status</label>
+          <select id="mStatus">
+            <option value="planejada" ${a.status==='planejada'?'selected':''}>Planejada</option>
+            <option value="andamento" ${a.status==='andamento'?'selected':''}>Em andamento</option>
+            <option value="concluida" ${a.status==='concluida'?'selected':''}>Concluída</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="modal-section">
-      <h4>Datas & SLA</h4>
-      <div class="modal-grid">
-        <div class="pair"><span class="lab">Início</span><span class="val">${fmtDateBR(parseDate(a.dataInicio))}</span></div>
-        <div class="pair"><span class="lab">Fim previsto</span><span class="val">${fmtDateBR(fimPrev)}</span></div>
-        <div class="pair"><span class="lab">Fim real</span><span class="val">${fmtDateBR(fimReal)}</span></div>
-        <div class="pair"><span class="lab">Janela</span><span class="val">${a.janela} dias úteis</span></div>
-        <div class="pair"><span class="lab">SLA previsto</span><span class="val">${slaP!=null?slaP+' dias':'—'}</span></div>
-        <div class="pair"><span class="lab">SLA realizado</span><span class="val">${slaR!=null?slaR+' dias':'—'}</span></div>
+      <h4>Datas</h4>
+      <div class="modal-form">
+        <div class="modal-field"><label>Data do 1º disparo</label><input id="mDataInicio" type="date" value="${a.dataInicio||''}" oninput="recalcModalDerived()"></div>
+        <div class="modal-field"><label>Janela (dias úteis)</label><input id="mJanela" type="number" min="1" value="${a.janela}" oninput="recalcModalDerived()"></div>
+        <div class="modal-field"><label>Fim real</label><input id="mFimReal" type="date" value="${a.dataFimReal||''}" oninput="recalcModalDerived()"></div>
       </div>
     </div>
     <div class="modal-section">
-      <h4>Pacientes</h4>
-      <div class="modal-grid">
-        <div class="pair"><span class="lab">Base total</span><span class="val">${fmtInt(a.base)}</span></div>
-        <div class="pair"><span class="lab">Disparos</span><span class="val">${a.disparos}</span></div>
-        <div class="pair"><span class="lab">Pacientes por disparo de Base</span><span class="val">${fmtInt(pac)}</span></div>
-        <div class="pair"><span class="lab">% Engajamento</span><span class="val">${fmt(a.engajamento)}%</span></div>
+      <h4>Volume</h4>
+      <div class="modal-form">
+        <div class="modal-field"><label>Base de pacientes</label><input id="mBase" type="number" min="1" value="${a.base}" oninput="recalcModalDerived()"></div>
+        <div class="modal-field"><label>Quantidade de disparos</label><input id="mDisparos" type="number" min="1" value="${a.disparos}" oninput="recalcModalDerived()"></div>
+        <div class="modal-field"><label>% Engajamento</label><input id="mEng" type="number" min="0" max="100" step="0.1" value="${a.engajamento}" oninput="recalcModalDerived()"></div>
       </div>
     </div>
     <div class="modal-section">
-      <h4>Atendimentos</h4>
-      <div class="modal-grid">
-        <div class="pair"><span class="lab">Total de atendimentos</span><span class="val">${fmtInt(total)}</span></div>
-        <div class="pair"><span class="lab">Atend./disparo</span><span class="val">${fmtInt(atendDisp)}</span></div>
-        <div class="pair"><span class="lab">Demanda diária (janela)</span><span class="val">${fmtInt(dem)}</span></div>
-        <div class="pair"><span class="lab">% da capacidade do time</span><span class="val">${pctCap}%</span></div>
-      </div>
+      <h4>Resumo calculado</h4>
+      <div class="modal-grid" id="modalCalcs"></div>
     </div>
     <div class="modal-section">
       <h4>Observação</h4>
       <textarea class="modal-textarea" id="modalObs" placeholder="Adicione contexto, segmentação, restrições...">${escapeHtml(a.observacao||'')}</textarea>
-      <button class="btn btn-ghost" style="margin-top:8px;align-self:flex-start" onclick="salvarObs()">💾 Salvar observação</button>
     </div>
   `;
   document.getElementById('modal').classList.add('open');
+  recalcModalDerived();
+}
+
+function recalcModalDerived(){
+  const box=document.getElementById('modalCalcs');
+  if(!box)return;
+  const base=Math.max(0,Number(document.getElementById('mBase').value||0));
+  const disp=Math.max(1,Number(document.getElementById('mDisparos').value||1));
+  const eng=Math.max(0,Number(document.getElementById('mEng').value||0));
+  const jan=Math.max(1,Number(document.getElementById('mJanela').value||1));
+  const dataIni=document.getElementById('mDataInicio').value;
+  const fimRealStr=document.getElementById('mFimReal').value;
+  const total=base*(eng/100);
+  const pac=base/disp;
+  const atendDisp=pac*(eng/100);
+  const dem=total/jan;
+  const capDia=capacidadeDia();
+  const pctCap=capDia?Math.round(dem/capDia*100):0;
+  const tempAcao={id:'__m__',base,disparos:disp,engajamento:eng,janela:jan,dataInicio:dataIni,status:'planejada'};
+  const fimPrev=dataIni?dataFimPrevista(tempAcao):null;
+  const slaP=dataIni&&fimPrev?Math.round((fimPrev-parseDate(dataIni))/86400000):null;
+  const slaR=(dataIni&&fimRealStr)?Math.round((parseDate(fimRealStr)-parseDate(dataIni))/86400000):null;
+  const slaColor=(slaR!==null&&slaP!==null&&slaR>slaP)?'#c8364f':(slaR!==null?'#15803d':'#102740');
+  box.innerHTML=`
+    <div class="pair"><span class="lab">Fim previsto</span><span class="val">${fmtDateBR(fimPrev)}</span></div>
+    <div class="pair"><span class="lab">Pacientes por disparo de Base</span><span class="val">${fmtInt(pac)}</span></div>
+    <div class="pair"><span class="lab">Total de atendimentos</span><span class="val">${fmtInt(total)}</span></div>
+    <div class="pair"><span class="lab">Atend./disparo</span><span class="val">${fmtInt(atendDisp)}</span></div>
+    <div class="pair"><span class="lab">Demanda diária (janela)</span><span class="val">${fmtInt(dem)}</span></div>
+    <div class="pair"><span class="lab">% da capacidade do time</span><span class="val">${pctCap}%</span></div>
+    <div class="pair"><span class="lab">SLA previsto</span><span class="val">${slaP!=null?slaP+' dias':'—'}</span></div>
+    <div class="pair"><span class="lab">SLA realizado</span><span class="val" style="color:${slaColor}">${slaR!=null?slaR+' dias':'—'}</span></div>
+  `;
+}
+
+function salvarEdicaoAcao(){
+  const id=STATE.modalAcaoId;if(!id)return;
+  const a=STATE.acoes.find(x=>x.id===id);if(!a)return;
+  const nome=document.getElementById('mNome').value.trim();
+  if(!nome){toast('Informe o nome da ação.','error');return}
+  a.nome=nome;
+  a.responsavel=document.getElementById('mResp').value.trim();
+  a.status=document.getElementById('mStatus').value;
+  a.dataInicio=document.getElementById('mDataInicio').value;
+  a.janela=Math.max(1,Number(document.getElementById('mJanela').value)||1);
+  a.dataFimReal=document.getElementById('mFimReal').value;
+  a.base=Math.max(1,Number(document.getElementById('mBase').value)||0);
+  a.disparos=Math.max(1,Number(document.getElementById('mDisparos').value)||1);
+  a.engajamento=Math.max(0,Number(document.getElementById('mEng').value)||0);
+  a.observacao=document.getElementById('modalObs').value;
+  toast('Alterações salvas.','success');
+  closeModal();
+  renderAll();
 }
 
 function closeModal(e){
@@ -1074,48 +1343,53 @@ function closeModal(e){
   STATE.modalAcaoId=null;
 }
 
-function salvarObs(){
-  const id=STATE.modalAcaoId;if(!id)return;
-  const a=STATE.acoes.find(x=>x.id===id);if(!a)return;
-  a.observacao=document.getElementById('modalObs').value;
-  toast('Observação salva.','success');
-}
-
 function gerarResumoTexto(){
   const id=STATE.modalAcaoId;if(!id)return '';
   const a=STATE.acoes.find(x=>x.id===id);if(!a)return '';
-  const total=a.base*(a.engajamento/100);
-  const dem=total/a.janela;
-  const pac=a.base/a.disparos;
-  const atendDisp=pac*(a.engajamento/100);
-  const fimPrev=dataFimPrevista(a);
-  const fimReal=a.dataFimReal?parseDate(a.dataFimReal):null;
+  /* Pega valores atuais do modal (caso o usuário tenha alterado mas não salvo) */
+  const get=id=>document.getElementById(id)?.value;
+  const nome=get('mNome')||a.nome;
+  const resp=get('mResp')||a.responsavel||'';
+  const status=get('mStatus')||a.status;
+  const base=Number(get('mBase'))||a.base;
+  const disp=Number(get('mDisparos'))||a.disparos;
+  const eng=Number(get('mEng'))||a.engajamento;
+  const janela=Number(get('mJanela'))||a.janela;
+  const dataIni=get('mDataInicio')||a.dataInicio;
+  const dataFR=get('mFimReal')||a.dataFimReal;
+  const total=base*(eng/100);
+  const dem=total/janela;
+  const pac=base/disp;
+  const atendDisp=pac*(eng/100);
+  const tempAcao={id:'__t__',base,disparos:disp,engajamento:eng,janela,dataInicio:dataIni,status};
+  const fimPrev=dataIni?dataFimPrevista(tempAcao):null;
+  const fimReal=dataFR?parseDate(dataFR):null;
   const capDia=capacidadeDia();
-  const pctCap=Math.round(dem/capDia*100);
-  const statusLbl={planejada:'Planejada',andamento:'Em andamento',concluida:'Concluída'}[a.status];
-  const slaR=slaRealDias(a);
-  const slaP=slaPrevistoDias(a);
+  const pctCap=capDia?Math.round(dem/capDia*100):0;
+  const statusLbl={planejada:'Planejada',andamento:'Em andamento',concluida:'Concluída'}[status];
+  const slaR=fimReal?Math.round((fimReal-parseDate(dataIni))/86400000):null;
+  const slaP=fimPrev?Math.round((fimPrev-parseDate(dataIni))/86400000):null;
   const obs=document.getElementById('modalObs')?.value||a.observacao||'';
   return [
     `RESUMO DA AÇÃO`,
     `=================================`,
-    `Nome:               ${a.nome}`,
+    `Nome:               ${nome}`,
     `Status:             ${statusLbl}`,
-    `Responsável:        ${a.responsavel||'—'}`,
+    `Responsável:        ${resp||'—'}`,
     ``,
     `DATAS & SLA`,
-    `Início:             ${fmtDateBR(parseDate(a.dataInicio))}`,
+    `Início:             ${fmtDateBR(dataIni?parseDate(dataIni):null)}`,
     `Fim previsto:       ${fmtDateBR(fimPrev)}`,
     `Fim real:           ${fmtDateBR(fimReal)}`,
-    `Janela:             ${a.janela} dias úteis`,
+    `Janela:             ${janela} dias úteis`,
     `SLA previsto:       ${slaP!=null?slaP+' dias':'—'}`,
     `SLA realizado:      ${slaR!=null?slaR+' dias':'—'}`,
     ``,
     `PACIENTES`,
-    `Base total:                      ${fmtInt(a.base)}`,
-    `Disparos:                        ${a.disparos}`,
+    `Base total:                      ${fmtInt(base)}`,
+    `Disparos:                        ${disp}`,
     `Pacientes por disparo de Base:   ${fmtInt(pac)}`,
-    `% Engajamento:                   ${fmt(a.engajamento)}%`,
+    `% Engajamento:                   ${fmt(eng)}%`,
     ``,
     `ATENDIMENTOS`,
     `Total de atendimentos:           ${fmtInt(total)}`,
@@ -1151,49 +1425,30 @@ function downloadResumo(){
    FILTROS - ANÁLISE DE AÇÕES
 ============================================================ */
 function refreshFilterOptions(){
-  const fAcao=document.getElementById('fAcao');
-  const fResp=document.getElementById('fResp');
-  const fMes=document.getElementById('fMes');
-  /* CAPTURA O VALOR ATUAL ANTES de reconstruir as options - fix do bug */
-  const currAcao=fAcao.value;
-  const currResp=fResp.value;
-  const currMes=fMes.value;
-
-  fAcao.innerHTML='<option value="">Todas as ações</option>'+
-    [...STATE.acoes].sort((a,b)=>a.nome.localeCompare(b.nome))
-      .map(a=>`<option value="${a.id}">${escapeHtml(a.nome)}</option>`).join('');
-
+  msSetOptions('fAcao',
+    [...STATE.acoes].sort((a,b)=>a.nome.localeCompare(b.nome)).map(a=>({value:a.id,text:a.nome})),
+    renderAnalises);
   const resps=[...new Set(STATE.acoes.map(a=>a.responsavel).filter(Boolean))].sort();
-  fResp.innerHTML='<option value="">Todos os responsáveis</option>'+
-    resps.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-
+  msSetOptions('fResp',resps.map(r=>({value:r,text:r})),renderAnalises);
   const meses=[...new Set(STATE.acoes.map(a=>a.dataInicio?.slice(0,7)).filter(Boolean))].sort();
-  fMes.innerHTML='<option value="">Todos os meses</option>'+
-    meses.map(m=>`<option value="${m}">${fmtMesBR(m)}</option>`).join('');
-
-  if([...fAcao.options].some(o=>o.value===currAcao))fAcao.value=currAcao;
-  if([...fResp.options].some(o=>o.value===currResp))fResp.value=currResp;
-  if([...fMes.options].some(o=>o.value===currMes))fMes.value=currMes;
+  msSetOptions('fMes',meses.map(m=>({value:m,text:fmtMesBR(m)})),renderAnalises);
 }
 
 function limparFiltros(){
-  document.getElementById('fAcao').value='';
-  document.getElementById('fResp').value='';
-  document.getElementById('fStatus').value='';
-  document.getElementById('fMes').value='';
+  ['fAcao','fResp','fStatus','fMes'].forEach(id=>msClear(id));
   renderAnalises();
 }
 
 function acoesFiltradas(){
-  const fAcao=document.getElementById('fAcao').value;
-  const fResp=document.getElementById('fResp').value;
-  const fStatus=document.getElementById('fStatus').value;
-  const fMes=document.getElementById('fMes').value;
+  const fAcao=msGetValues('fAcao');
+  const fResp=msGetValues('fResp');
+  const fStatus=msGetValues('fStatus');
+  const fMes=msGetValues('fMes');
   return STATE.acoes.filter(a=>{
-    if(fAcao && a.id!==fAcao)return false;
-    if(fResp && (a.responsavel||'')!==fResp)return false;
-    if(fStatus && a.status!==fStatus)return false;
-    if(fMes && !a.dataInicio.startsWith(fMes))return false;
+    if(fAcao.length && !fAcao.includes(a.id))return false;
+    if(fResp.length && !fResp.includes(a.responsavel||''))return false;
+    if(fStatus.length && !fStatus.includes(a.status))return false;
+    if(fMes.length && !fMes.some(m=>a.dataInicio.startsWith(m)))return false;
     return true;
   });
 }
@@ -1230,7 +1485,7 @@ function renderStats(lista){
   const slaMed=comSla.length?comSla.reduce((s,v)=>s+v,0)/comSla.length:null;
   const respUnicos=new Set(lista.map(a=>a.responsavel).filter(Boolean)).size;
   wrap.innerHTML=`
-    <div class="stat accent"><div class="l">Ações no filtro</div><div class="v">${lista.length}</div><div class="d">${concl} concluídas (${pctConcl}%)</div></div>
+    <div class="stat accent"><div class="l">Ações</div><div class="v">${lista.length}</div><div class="d">${concl} concluídas (${pctConcl}%)</div></div>
     <div class="stat ink"><div class="l">Atendimentos previstos</div><div class="v">${fmtInt(totalAtend)}</div><div class="d">base total: ${fmtInt(baseTotal)} pacientes</div></div>
     <div class="stat ok"><div class="l">SLA médio realizado</div><div class="v">${slaMed!==null?fmt(slaMed)+'d':'—'}</div><div class="d">${comSla.length} ações com fim real</div></div>
     <div class="stat warn"><div class="l">Engajamento médio</div><div class="v">${fmt(engMed)}%</div><div class="d">janela média ${fmt(janelaMed)}d · ${respUnicos} responsáveis</div></div>
@@ -1637,15 +1892,466 @@ function exportExcel(){
 ============================================================ */
 function statusLabel(s){return {planejada:'Planejada',andamento:'Em andamento',concluida:'Concluída'}[s]||s}
 
-function buildHistFiltrosTxt(){
-  const fResp=document.getElementById('hRespFilter')?.value||'';
-  const fCumpr=document.getElementById('hCumprFilter')?.value||'';
-  const fStatus=document.getElementById('hStatusFilter')?.value||'';
+function msGetLabels(id){
+  const wrap=document.querySelector(`[data-ms-id="${id}"]`);
+  if(!wrap)return [];
+  return [...wrap.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.parentElement.querySelector('span')?.textContent||c.value);
+}
+
+/* ============================================================
+   ANÁLISE POR ANALISTA
+============================================================ */
+function refreshAnalistaFilterOptions(){
+  const resps=[...new Set(STATE.acoes.map(a=>a.responsavel).filter(Boolean))].sort();
+  msSetOptions('aResp',resps.map(r=>({value:r,text:r})),renderAnalistas);
+  const meses=[...new Set(STATE.acoes.map(a=>a.dataInicio?.slice(0,7)).filter(Boolean))].sort();
+  msSetOptions('aMes',meses.map(m=>({value:m,text:fmtMesBR(m)})),renderAnalistas);
+}
+
+function limparFiltrosAnalista(){
+  ['aResp','aStatus','aMes'].forEach(id=>msClear(id));
+  renderAnalistas();
+}
+
+function acoesAnalistaFiltradas(){
+  const fResp=msGetValues('aResp');
+  const fStatus=msGetValues('aStatus');
+  const fMes=msGetValues('aMes');
+  return STATE.acoes.filter(a=>{
+    if(fResp.length && !fResp.includes(a.responsavel||''))return false;
+    if(fStatus.length && !fStatus.includes(a.status))return false;
+    if(fMes.length && !fMes.some(m=>a.dataInicio?.startsWith(m)))return false;
+    return true;
+  });
+}
+
+/* Métricas agregadas por responsável */
+function metricasPorAnalista(lista){
+  const map={};
+  lista.forEach(a=>{
+    const r=a.responsavel||'Sem responsável';
+    if(!map[r])map[r]={nome:r,acoes:0,concluidas:0,andamento:0,planejada:0,baseTotal:0,atendTotal:0,engSoma:0,janelaSoma:0,slaCumprido:0,slaNao:0,comSla:0,atrasadas:0,semFimReal:0};
+    const m=map[r];
+    m.acoes++;
+    m[a.status]++;
+    m.baseTotal+=a.base;
+    m.atendTotal+=a.base*(a.engajamento/100);
+    m.engSoma+=a.engajamento;
+    m.janelaSoma+=a.janela;
+    const slaR=slaRealDias(a);
+    const slaP=slaPrevistoDias(a);
+    if(slaR!==null && slaP!==null){
+      m.comSla++;
+      if(slaR<=slaP)m.slaCumprido++;else m.slaNao++;
+    }
+    if(a.status==='concluida' && !a.dataFimReal)m.semFimReal++;
+    const fimP=dataFimPrevista(a);
+    const hoje=new Date();hoje.setHours(0,0,0,0);
+    if(a.status!=='concluida' && fimP && fimP<hoje)m.atrasadas++;
+  });
+  return Object.values(map).map(m=>{
+    m.engMedio=m.acoes?m.engSoma/m.acoes:0;
+    m.janelaMedia=m.acoes?m.janelaSoma/m.acoes:0;
+    m.taxaConclusao=m.acoes?(m.concluidas/m.acoes*100):0;
+    m.taxaSla=m.comSla?(m.slaCumprido/m.comSla*100):null;
+    /* Score: peso 40% conclusão, 40% SLA, 20% engajamento */
+    const sla=m.taxaSla!==null?m.taxaSla:50;
+    m.score=Math.round(m.taxaConclusao*0.4 + sla*0.4 + Math.min(100,m.engMedio*2)*0.2);
+    return m;
+  }).sort((a,b)=>b.score-a.score);
+}
+
+function renderAnalistas(){
+  refreshAnalistaFilterOptions();
+  const lista=acoesAnalistaFiltradas();
+  const metricas=metricasPorAnalista(lista);
+  renderStatsAnalista(lista,metricas);
+  renderRankingAnalista(metricas);
+  renderChartsAnalista(metricas);
+  renderInsightsAnalista(lista,metricas);
+}
+
+function renderStatsAnalista(lista,metricas){
+  const wrap=document.getElementById('statGridAnalista');
+  const totalResp=metricas.length;
+  const top=metricas[0];
+  const totalAtend=lista.reduce((s,a)=>s+a.base*(a.engajamento/100),0);
+  const concl=lista.filter(a=>a.status==='concluida').length;
+  const taxa=lista.length?Math.round(concl/lista.length*100):0;
+  const comSla=metricas.reduce((s,m)=>s+m.comSla,0);
+  const slaCumpr=metricas.reduce((s,m)=>s+m.slaCumprido,0);
+  const taxaSlaGeral=comSla?Math.round(slaCumpr/comSla*100):null;
+  wrap.innerHTML=`
+    <div class="stat accent"><div class="l">Analistas</div><div class="v">${totalResp}</div><div class="d">${lista.length} ações no escopo</div></div>
+    <div class="stat ink"><div class="l">Top performer</div><div class="v" style="font-size:16px;line-height:1.3">${top?escapeHtml(top.nome):'—'}</div><div class="d">score ${top?top.score:'—'}</div></div>
+    <div class="stat ok"><div class="l">SLA cumprido geral</div><div class="v">${taxaSlaGeral!==null?taxaSlaGeral+'%':'—'}</div><div class="d">${slaCumpr}/${comSla} ações</div></div>
+    <div class="stat warn"><div class="l">Taxa de conclusão</div><div class="v">${taxa}%</div><div class="d">${concl}/${lista.length} ações · ${fmtInt(totalAtend)} atend.</div></div>
+  `;
+}
+
+function renderRankingAnalista(metricas){
+  const t=document.getElementById('rankingTable');
+  if(!metricas.length){t.innerHTML='<tbody><tr><td class="empty" style="padding:24px;text-align:center;color:var(--muted)">Sem dados — atribua responsáveis às ações.</td></tr></tbody>';return}
+  const maxScore=Math.max(...metricas.map(m=>m.score),1);
+  t.innerHTML=`
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">#</th>
+        <th style="text-align:left;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">Analista</th>
+        <th style="text-align:right;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">Ações</th>
+        <th style="text-align:right;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">Concluídas</th>
+        <th style="text-align:right;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">% SLA</th>
+        <th style="text-align:right;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">Eng. méd.</th>
+        <th style="text-align:right;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">Atend.</th>
+        <th style="text-align:left;padding:10px 8px;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fbfcfe">Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${metricas.map((m,i)=>{
+        const rcls=i===0?'r1':i===1?'r2':i===2?'r3':'r4';
+        const barW=Math.round(m.score/maxScore*100);
+        return `<tr>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="rank-pos ${rcls}">${i+1}</span></td>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600">${escapeHtml(m.nome)}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line);text-align:right">${m.acoes}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line);text-align:right">${m.concluidas}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line);text-align:right">${m.taxaSla!==null?Math.round(m.taxaSla)+'%':'—'}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line);text-align:right">${fmt(m.engMedio)}%</td>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line);text-align:right">${fmtInt(m.atendTotal)}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><div style="display:flex;align-items:center;gap:8px"><span class="score-bar" style="width:${barW}%"></span><b style="color:var(--ink)">${m.score}</b></div></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  `;
+}
+
+function renderChartsAnalista(metricas){
+  const labels=metricas.map(m=>m.nome);
+  const palette=COLORS.palette;
+  const bg=(i)=>palette[i%palette.length];
+
+  destroyChart('chartAVolume');
+  if(document.getElementById('chartAVolume')){
+    CHARTS['chartAVolume']=new Chart(document.getElementById('chartAVolume'),{
+      type:'bar',
+      data:{labels,datasets:[{label:'Atendimentos',data:metricas.map(m=>Math.round(m.atendTotal)),backgroundColor:metricas.map((_,i)=>bg(i)),borderRadius:6,borderSkipped:false}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:COLORS.ink}},scales:{x:{grid:{color:COLORS.line},ticks:{color:COLORS.muted}},y:{grid:{display:false},ticks:{color:COLORS.ink}}}}
+    });
+  }
+  destroyChart('chartAAcoes');
+  if(document.getElementById('chartAAcoes')){
+    CHARTS['chartAAcoes']=new Chart(document.getElementById('chartAAcoes'),{
+      type:'doughnut',
+      data:{labels,datasets:[{data:metricas.map(m=>m.acoes),backgroundColor:metricas.map((_,i)=>bg(i)),borderColor:'#fff',borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:COLORS.ink,font:{size:11},padding:10}},tooltip:{backgroundColor:COLORS.ink}},cutout:'60%'}
+    });
+  }
+  destroyChart('chartASla');
+  if(document.getElementById('chartASla')){
+    CHARTS['chartASla']=new Chart(document.getElementById('chartASla'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'SLA cumprido',data:metricas.map(m=>m.slaCumprido),backgroundColor:COLORS.ok,borderRadius:6,borderSkipped:false,stack:'s1'},
+        {label:'SLA não cumprido',data:metricas.map(m=>m.slaNao),backgroundColor:COLORS.accent,borderRadius:6,borderSkipped:false,stack:'s1'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:COLORS.ink,font:{size:11},padding:10}},tooltip:{backgroundColor:COLORS.ink}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:COLORS.ink,font:{size:10}}},y:{stacked:true,grid:{color:COLORS.line},ticks:{color:COLORS.muted,precision:0},beginAtZero:true}}}
+    });
+  }
+  destroyChart('chartATaxa');
+  if(document.getElementById('chartATaxa')){
+    CHARTS['chartATaxa']=new Chart(document.getElementById('chartATaxa'),{
+      type:'bar',
+      data:{labels,datasets:[{label:'% conclusão',data:metricas.map(m=>Math.round(m.taxaConclusao)),backgroundColor:COLORS.ink,borderRadius:6,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:COLORS.ink}},scales:{x:{grid:{display:false},ticks:{color:COLORS.ink,font:{size:10}}},y:{grid:{color:COLORS.line},ticks:{color:COLORS.muted,callback:v=>v+'%'},beginAtZero:true,max:100}}}
+    });
+  }
+  destroyChart('chartAEng');
+  if(document.getElementById('chartAEng')){
+    CHARTS['chartAEng']=new Chart(document.getElementById('chartAEng'),{
+      type:'bar',
+      data:{labels,datasets:[{label:'Engajamento médio %',data:metricas.map(m=>+m.engMedio.toFixed(1)),backgroundColor:COLORS.warn,borderRadius:6,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:COLORS.ink}},scales:{x:{grid:{display:false},ticks:{color:COLORS.ink,font:{size:10}}},y:{grid:{color:COLORS.line},ticks:{color:COLORS.muted,callback:v=>v+'%'},beginAtZero:true}}}
+    });
+  }
+  destroyChart('chartAScore');
+  if(document.getElementById('chartAScore')){
+    CHARTS['chartAScore']=new Chart(document.getElementById('chartAScore'),{
+      type:'bar',
+      data:{labels,datasets:[{label:'Score',data:metricas.map(m=>m.score),backgroundColor:COLORS.accent,borderRadius:6,borderSkipped:false}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:COLORS.ink}},scales:{x:{grid:{color:COLORS.line},ticks:{color:COLORS.muted},beginAtZero:true,max:100},y:{grid:{display:false},ticks:{color:COLORS.ink}}}}
+    });
+  }
+}
+
+function renderInsightsAnalista(lista,metricas){
+  const visao=document.getElementById('painelAnalistaVisao');
+  const destaque=document.getElementById('painelAnalistaDestaque');
+  const melhoria=document.getElementById('painelAnalistaMelhoria');
+  if(!metricas.length){
+    visao.innerHTML='<li>Cadastre ações com responsável atribuído para gerar insights.</li>';
+    destaque.innerHTML='<li>Sem destaques ainda.</li>';
+    melhoria.innerHTML='<li>—</li>';
+    return;
+  }
+  const top=metricas[0];
+  const bottom=metricas[metricas.length-1];
+  const totalAtend=lista.reduce((s,a)=>s+a.base*(a.engajamento/100),0);
+  const top3=metricas.slice(0,3).map(m=>escapeHtml(m.nome)).join(', ');
+
+  /* Visão geral */
+  const vItems=[
+    `<b>${metricas.length}</b> analista(s) responsáveis por <b>${lista.length}</b> ação(ões) e <b>${fmtInt(totalAtend)}</b> atendimentos previstos.`,
+    `Top 3 por performance: <b>${top3}</b>.`,
+    top.taxaSla!==null?`Melhor SLA: <b>${escapeHtml(top.nome)}</b> com <b>${Math.round(top.taxaSla)}%</b> de SLA cumprido em ${top.comSla} ação(ões).`:'',
+    `Engajamento médio geral: <b>${fmt(metricas.reduce((s,m)=>s+m.engMedio*m.acoes,0)/lista.length)}%</b>.`,
+    `Volume total sob gestão: <b>${fmtInt(totalAtend)}</b> atendimentos previstos.`
+  ].filter(Boolean);
+  visao.innerHTML=vItems.map(i=>`<li>${i}</li>`).join('');
+
+  /* Destaques */
+  const dItems=[];
+  if(top)dItems.push(`🥇 <b>${escapeHtml(top.nome)}</b> lidera o ranking com score <b>${top.score}</b> (conclusão ${Math.round(top.taxaConclusao)}%, SLA ${top.taxaSla!==null?Math.round(top.taxaSla)+'%':'—'}, eng. ${fmt(top.engMedio)}%).`);
+  const topVolume=[...metricas].sort((a,b)=>b.atendTotal-a.atendTotal)[0];
+  if(topVolume && topVolume!==top)dItems.push(`📈 Maior volume sob responsabilidade: <b>${escapeHtml(topVolume.nome)}</b> com <b>${fmtInt(topVolume.atendTotal)}</b> atendimentos.`);
+  const topConclusao=[...metricas].filter(m=>m.acoes>=2).sort((a,b)=>b.taxaConclusao-a.taxaConclusao)[0];
+  if(topConclusao)dItems.push(`✅ Maior taxa de conclusão: <b>${escapeHtml(topConclusao.nome)}</b> com <b>${Math.round(topConclusao.taxaConclusao)}%</b> (${topConclusao.concluidas}/${topConclusao.acoes}).`);
+  const topEng=[...metricas].filter(m=>m.engMedio>0).sort((a,b)=>b.engMedio-a.engMedio)[0];
+  if(topEng)dItems.push(`💡 Maior engajamento médio: <b>${escapeHtml(topEng.nome)}</b> com <b>${fmt(topEng.engMedio)}%</b>.`);
+  destaque.innerHTML=(dItems.length?dItems:['Sem destaques suficientes ainda.']).map(i=>`<li>${i}</li>`).join('');
+
+  /* Melhoria */
+  const mItems=[];
+  const semFimReal=metricas.filter(m=>m.semFimReal>0);
+  if(semFimReal.length){
+    const total=semFimReal.reduce((s,m)=>s+m.semFimReal,0);
+    mItems.push(`📅 <b>${total}</b> ação(ões) concluídas <b>sem fim real preenchido</b> distribuídas entre ${semFimReal.length} analista(s) — bloqueia avaliação de SLA.`);
+  }
+  const comAtraso=metricas.filter(m=>m.atrasadas>0).sort((a,b)=>b.atrasadas-a.atrasadas);
+  if(comAtraso.length){
+    mItems.push(`⚠ Ações atrasadas: ${comAtraso.slice(0,3).map(m=>`<b>${escapeHtml(m.nome)}</b> (${m.atrasadas})`).join(', ')}.`);
+  }
+  const baixoSla=metricas.filter(m=>m.taxaSla!==null && m.taxaSla<60).sort((a,b)=>a.taxaSla-b.taxaSla);
+  if(baixoSla.length){
+    mItems.push(`📉 SLA abaixo de 60%: ${baixoSla.slice(0,3).map(m=>`<b>${escapeHtml(m.nome)}</b> (${Math.round(m.taxaSla)}%)`).join(', ')}.`);
+  }
+  if(bottom && bottom!==top && bottom.score<top.score-30){
+    mItems.push(`🎯 <b>${escapeHtml(bottom.nome)}</b> está com score ${bottom.score} (${top.score-bottom.score} pontos abaixo do líder) — avaliar suporte e redistribuição.`);
+  }
+  const semResp=STATE.acoes.filter(a=>!a.responsavel).length;
+  if(semResp>0){
+    mItems.push(`👤 <b>${semResp}</b> ação(ões) sem responsável atribuído globalmente — atribua para entrar no ranking.`);
+  }
+  melhoria.innerHTML=(mItems.length?mItems:['<span class="ok-tag">✅ Nenhum ponto crítico identificado.</span>']).map(i=>`<li>${i}</li>`).join('');
+}
+
+function buildAnalistaFiltrosTxt(){
+  const fResp=msGetLabels('aResp');
+  const fStatus=msGetLabels('aStatus');
+  const fMes=msGetLabels('aMes');
   const parts=[];
-  if(fResp)parts.push(`Responsável: ${fResp}`);
-  if(fCumpr==='sim')parts.push('Cumprimento: Cumprida');
-  if(fCumpr==='nao')parts.push('Cumprimento: Não cumprida');
-  if(fStatus)parts.push(`Status: ${statusLabel(fStatus)}`);
+  if(fResp.length)parts.push(`Responsável: ${fResp.join(', ')}`);
+  if(fStatus.length)parts.push(`Status: ${fStatus.join(', ')}`);
+  if(fMes.length)parts.push(`Mês: ${fMes.join(', ')}`);
+  return parts.length?`Filtros: ${parts.join(' · ')}`:'Sem filtros aplicados';
+}
+
+async function exportAnalistaPDF(){
+  if(!STATE.acoes.length){toast('Sem ações para exportar.','error');return}
+  if(STATE.activeTab!=='tabAnalista')switchTab('tabAnalista');
+  renderAnalistas();
+  await new Promise(r=>setTimeout(r,600));
+
+  const chartIds=['chartAVolume','chartAAcoes','chartASla','chartATaxa','chartAEng','chartAScore'];
+  const chartTitles={
+    chartAVolume:'Atendimentos por responsável',
+    chartAAcoes:'Ações por responsável',
+    chartASla:'SLA cumprido vs não cumprido',
+    chartATaxa:'Taxa de conclusão por responsável',
+    chartAEng:'Engajamento médio por responsável',
+    chartAScore:'Performance score'
+  };
+  const imgs={};
+  chartIds.forEach(id=>{const c=document.getElementById(id);if(c)imgs[id]=c.toDataURL('image/png',1.0)});
+
+  const lista=acoesAnalistaFiltradas();
+  const metricas=metricasPorAnalista(lista);
+  const totalAtend=lista.reduce((s,a)=>s+a.base*(a.engajamento/100),0);
+  const concl=lista.filter(a=>a.status==='concluida').length;
+  const taxa=lista.length?Math.round(concl/lista.length*100):0;
+  const comSla=metricas.reduce((s,m)=>s+m.comSla,0);
+  const slaCumpr=metricas.reduce((s,m)=>s+m.slaCumprido,0);
+  const taxaSlaGeral=comSla?Math.round(slaCumpr/comSla*100):null;
+
+  const filtrosTxt=buildAnalistaFiltrosTxt();
+  const visaoHTML=document.getElementById('painelAnalistaVisao').innerHTML;
+  const destaqueHTML=document.getElementById('painelAnalistaDestaque').innerHTML;
+  const melhoriaHTML=document.getElementById('painelAnalistaMelhoria').innerHTML;
+  const rankingHTML=document.getElementById('rankingTable').innerHTML;
+
+  const chartCard=(id,title)=>imgs[id]?`
+    <div class="chart-card">
+      <h3>${title}</h3>
+      <img src="${imgs[id]}" alt="${title}"/>
+    </div>`:'';
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Análise por Analista — ${fmtDate(new Date())}</title>
+<style>
+  @page { size: A4 portrait; margin: 12mm; }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#102740;margin:0;font-size:12px;line-height:1.5;background:#fff}
+  .toolbar{background:#102740;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+  .toolbar p{margin:0;font-size:13px}
+  .toolbar button{background:#EF4465;color:#fff;border:0;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit}
+  .toolbar button:hover{background:#c8364f}
+  .content{max-width:820px;margin:0 auto;padding:24px}
+  .header{border-bottom:3px solid #EF4465;padding-bottom:12px;margin-bottom:16px}
+  .header h1{margin:0;font-size:22px;color:#102740}
+  .header p{margin:6px 0 0;color:#64748b;font-size:11.5px}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+  .stat{border:1px solid #e5edf5;border-radius:10px;padding:12px 14px}
+  .stat .l{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+  .stat .v{font-size:22px;font-weight:700;margin-top:4px;color:#102740}
+  .stat .d{font-size:11px;color:#64748b;margin-top:2px}
+  .stat.accent{border-left:4px solid #EF4465}
+  .stat.ink{border-left:4px solid #102740}
+  .stat.ok{border-left:4px solid #16a34a}
+  .stat.warn{border-left:4px solid #f59e0b}
+  h2{font-size:14px;margin:20px 0 10px;color:#102740}
+  .charts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .chart-card{border:1px solid #e5edf5;border-radius:10px;padding:12px;background:#fff;page-break-inside:avoid;break-inside:avoid}
+  .chart-card h3{margin:0 0 8px;font-size:12px;font-weight:700;color:#102740}
+  .chart-card img{width:100%;height:auto;display:block}
+  .panel{border:1px solid #e5edf5;border-radius:10px;padding:14px;margin-bottom:12px;page-break-inside:avoid;break-inside:avoid}
+  .panel h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+  .panel ul{margin:0;padding-left:18px;font-size:12px;line-height:1.7;color:#334155}
+  .panel.ink{border-left:4px solid #102740}
+  .panel.ink h3{color:#102740}
+  .panel.ok{border-left:4px solid #16a34a;background:#f3fbf6;border-color:#c6e9d3}
+  .panel.ok h3{color:#15803d}
+  .panel.bad{border-left:4px solid #EF4465;background:#fff8f9;border-color:#f9c6cf}
+  .panel.bad h3{color:#c8364f}
+  .panel b{color:#102740}
+  .ranking{margin:18px 0;border:1px solid #e5edf5;border-radius:10px;overflow:hidden;page-break-inside:avoid}
+  .ranking table{width:100%;border-collapse:collapse;font-size:11px}
+  .ranking th{background:#fbfcfe;padding:10px 8px;text-align:left;font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700}
+  .ranking td{padding:10px 8px;border-bottom:1px solid #e5edf5}
+  .rank-pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;font-weight:700;font-size:11px}
+  .rank-pos.r1{background:#fef3c7;color:#92400e}
+  .rank-pos.r2{background:#e0e7ff;color:#3730a3}
+  .rank-pos.r3{background:#dcfce7;color:#15803d}
+  .rank-pos.r4{background:#f1f5f9;color:#475569}
+  .score-bar{display:inline-block;height:5px;border-radius:999px;background:linear-gradient(90deg,#EF4465,#102740);min-width:4px}
+  @media print {
+    .toolbar{display:none}
+    .content{max-width:none;padding:0;margin:0}
+    body{font-size:11px}
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <p>Pré-visualização do PDF — clique no botão para salvar.</p>
+    <button onclick="window.print()">📄 Imprimir / Salvar como PDF</button>
+  </div>
+
+  <div class="content">
+    <div class="header">
+      <h1>Análise por Analista</h1>
+      <p>Gerado em ${new Date().toLocaleString('pt-BR')} · ${metricas.length} analista(s) · ${lista.length} ação(ões) · ${filtrosTxt}</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat accent"><div class="l">Analistas</div><div class="v">${metricas.length}</div><div class="d">${lista.length} ações</div></div>
+      <div class="stat ink"><div class="l">Top performer</div><div class="v" style="font-size:16px;line-height:1.3">${metricas[0]?escapeHtml(metricas[0].nome):'—'}</div><div class="d">score ${metricas[0]?metricas[0].score:'—'}</div></div>
+      <div class="stat ok"><div class="l">SLA cumprido geral</div><div class="v">${taxaSlaGeral!==null?taxaSlaGeral+'%':'—'}</div><div class="d">${slaCumpr}/${comSla} ações</div></div>
+      <div class="stat warn"><div class="l">Taxa de conclusão</div><div class="v">${taxa}%</div><div class="d">${concl}/${lista.length} ações</div></div>
+    </div>
+
+    <h2>Visualizações</h2>
+    <div class="charts">
+      ${chartCard('chartAVolume',chartTitles.chartAVolume)}
+      ${chartCard('chartAAcoes',chartTitles.chartAAcoes)}
+      ${chartCard('chartASla',chartTitles.chartASla)}
+      ${chartCard('chartATaxa',chartTitles.chartATaxa)}
+      ${chartCard('chartAEng',chartTitles.chartAEng)}
+      ${chartCard('chartAScore',chartTitles.chartAScore)}
+    </div>
+
+    <h2 style="page-break-before:always">Ranking dos Analistas</h2>
+    <div class="ranking"><table>${rankingHTML}</table></div>
+
+    <h2>Insights</h2>
+    <div class="panel ink">
+      <h3>📌 Visão geral</h3>
+      <ul>${visaoHTML}</ul>
+    </div>
+    <div class="panel ok">
+      <h3>🌟 Destaques positivos</h3>
+      <ul>${destaqueHTML}</ul>
+    </div>
+    <div class="panel bad">
+      <h3>🔧 Pontos de melhoria</h3>
+      <ul>${melhoriaHTML}</ul>
+    </div>
+
+    <h2 style="page-break-before:always">Como o Performance Score é calculado?</h2>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:10px;padding:14px;page-break-inside:avoid">
+      <p style="margin:0 0 10px"><b>Faixa:</b> 0 a 100 pontos · <b>Quanto maior, melhor.</b></p>
+      <div style="background:#fff;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="font-size:10px;color:#92400e;text-transform:uppercase;font-weight:700;margin-bottom:4px">Fórmula</div>
+        <code style="display:block;font-size:11.5px;color:#102740;background:#fefce8;padding:8px;border-radius:6px;font-family:Consolas,Monaco,monospace">Score = (Taxa de Conclusão × 40%) + (Taxa de SLA × 40%) + (Engajamento normalizado × 20%)</code>
+      </div>
+      <p style="margin:0 0 6px;font-size:11px;color:#92400e;text-transform:uppercase;font-weight:700">Componentes</p>
+      <ul style="margin:0 0 12px;padding-left:18px;font-size:11.5px;line-height:1.65;color:#334155">
+        <li><b style="color:#102740">Taxa de Conclusão (40%)</b> — % das ações concluídas. Penaliza ações abertas há muito tempo.</li>
+        <li><b style="color:#102740">Taxa de SLA (40%)</b> — % com fim real ≤ fim previsto. Sem fim real, usa 50 pontos (neutro).</li>
+        <li><b style="color:#102740">Engajamento normalizado (20%)</b> — engajamento médio × 2 (cap 100). 50% engajamento médio = 100 pts.</li>
+      </ul>
+      <p style="margin:0 0 6px;font-size:11px;color:#92400e;text-transform:uppercase;font-weight:700">Faixas de leitura</p>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px">
+        <div style="padding:8px 10px;background:#dcfce7;border-left:3px solid #16a34a;border-radius:6px;font-size:11px"><b style="color:#15803d">80–100 · Excelente</b><br><span style="color:#334155">Manter como referência.</span></div>
+        <div style="padding:8px 10px;background:#dbeafe;border-left:3px solid #2563eb;border-radius:6px;font-size:11px"><b style="color:#1d4ed8">60–79 · Bom</b><br><span style="color:#334155">Dentro do esperado.</span></div>
+        <div style="padding:8px 10px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:11px"><b style="color:#92400e">40–59 · Atenção</b><br><span style="color:#334155">Investigar gargalos.</span></div>
+        <div style="padding:8px 10px;background:#fee2e2;border-left:3px solid #EF4465;border-radius:6px;font-size:11px"><b style="color:#c8364f">0–39 · Risco</b><br><span style="color:#334155">Plano de ação imediato.</span></div>
+      </div>
+      <p style="margin:0 0 6px;font-size:11px;color:#92400e;text-transform:uppercase;font-weight:700">Considerações</p>
+      <ul style="margin:0;padding-left:18px;font-size:11px;line-height:1.65;color:#334155">
+        <li>Analistas com poucas ações podem ter score volátil — interpretar com cautela.</li>
+        <li>Ações sem responsável não entram em nenhum analista.</li>
+        <li>Sem fim real preenchido, SLA usa 50 pontos (neutro) — nem premia nem penaliza.</li>
+        <li>O score é um indicador operacional, não uma avaliação completa do analista.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load',function(){
+      setTimeout(function(){ window.print(); },600);
+    });
+  <\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank','width=960,height=1000');
+  if(!win){toast('Pop-up bloqueado. Permita pop-ups para exportar PDF.','error');return}
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  toast('Abrindo janela de impressão...','success');
+}
+
+function buildHistFiltrosTxt(){
+  const fResp=msGetLabels('hRespFilter');
+  const fCumpr=msGetLabels('hCumprFilter');
+  const fStatus=msGetLabels('hStatusFilter');
+  const parts=[];
+  if(fResp.length)parts.push(`Responsável: ${fResp.join(', ')}`);
+  if(fCumpr.length)parts.push(`SLA: ${fCumpr.join(', ')}`);
+  if(fStatus.length)parts.push(`Status: ${fStatus.join(', ')}`);
   return parts.length?`Filtros: ${parts.join(' · ')}`:'Sem filtros aplicados';
 }
 
@@ -1711,7 +2417,7 @@ function exportHistoricoPDF(){
       </div>`;
   }).join('');
 
-  /* Resumo */
+  /* Resumo — TODOS os valores são da lista filtrada */
   const totalAtend=lista.reduce((s,a)=>s+a.base*(a.engajamento/100),0);
   const baseTotal=lista.reduce((s,a)=>s+a.base,0);
   const concl=lista.filter(a=>a.status==='concluida').length;
@@ -1720,6 +2426,15 @@ function exportHistoricoPDF(){
   const naoCumpridas=lista.length-concl;
   const comSla=lista.map(a=>slaRealDias(a)).filter(x=>x!==null);
   const slaMed=comSla.length?comSla.reduce((s,v)=>s+v,0)/comSla.length:null;
+
+  /* Totais gerais (sem filtros) para mostrar a relação filtro vs total */
+  const filtroAtivo=msGetValues('hRespFilter').length>0||msGetValues('hCumprFilter').length>0||msGetValues('hStatusFilter').length>0;
+  const tg=STATE.acoes;
+  const tgConcl=tg.filter(a=>a.status==='concluida').length;
+  const tgAtend=tg.reduce((s,a)=>s+a.base*(a.engajamento/100),0);
+  const tgSlaArr=tg.map(a=>slaRealDias(a)).filter(x=>x!==null);
+  const tgSla=tgSlaArr.length?tgSlaArr.reduce((s,v)=>s+v,0)/tgSlaArr.length:null;
+  const cmp=(f,t)=>filtroAtivo?` <span style="color:#94a3b8;font-weight:500">/ ${t} total</span>`:'';
 
   /* Insights */
   const hoje=new Date();hoje.setHours(0,0,0,0);
@@ -1779,7 +2494,7 @@ function exportHistoricoPDF(){
   .header{border-bottom:3px solid #EF4465;padding-bottom:12px;margin-bottom:16px}
   .header h1{margin:0;font-size:22px;color:#102740}
   .header p{margin:6px 0 0;color:#64748b;font-size:11.5px}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
   .stat{border:1px solid #e5edf5;border-radius:10px;padding:10px 12px}
   .stat .l{font-size:9.5px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
   .stat .v{font-size:20px;font-weight:700;margin-top:4px;color:#102740}
@@ -1832,11 +2547,12 @@ function exportHistoricoPDF(){
       <p>Gerado em ${new Date().toLocaleString('pt-BR')} · ${lista.length} ação(ões) · ${filtrosTxt}</p>
     </div>
 
+    ${filtroAtivo?'<div style="background:#fff5f7;border:1px solid #f9c6cf;color:#c8364f;border-radius:8px;padding:8px 12px;font-size:11.5px;margin-bottom:14px"><b>Filtros aplicados</b> — os valores abaixo refletem apenas as ações filtradas. Comparação com o total geral entre parênteses.</div>':''}
+
     <div class="stats">
-      <div class="stat accent"><div class="l">Total ações</div><div class="v">${lista.length}</div><div class="d">${planejada} plan · ${andamento} and · ${concl} con</div></div>
-      <div class="stat ok"><div class="l">Cumpridas</div><div class="v">${concl}</div><div class="d">${naoCumpridas} pendentes</div></div>
-      <div class="stat ink"><div class="l">Atend. previstos</div><div class="v">${fmtInt(totalAtend)}</div><div class="d">base ${fmtInt(baseTotal)}</div></div>
-      <div class="stat warn"><div class="l">SLA médio</div><div class="v">${slaMed!==null?fmt(slaMed)+'d':'—'}</div><div class="d">${comSla.length} com fim real</div></div>
+      <div class="stat accent"><div class="l">Ações no relatório</div><div class="v">${lista.length}${cmp(lista.length,tg.length)}</div><div class="d">${planejada} plan · ${andamento} and · ${concl} con</div></div>
+      <div class="stat ink"><div class="l">Atend. previstos</div><div class="v">${fmtInt(totalAtend)}${cmp(totalAtend,tgAtend)}</div><div class="d">base ${fmtInt(baseTotal)} pacientes</div></div>
+      <div class="stat warn"><div class="l">SLA médio</div><div class="v">${slaMed!==null?fmt(slaMed)+'d':'—'}${filtroAtivo&&tgSla!==null?` <span style="color:#94a3b8;font-weight:500">/ ${fmt(tgSla)}d total</span>`:''}</div><div class="d">${comSla.length} com fim real${filtroAtivo?` (${tgSlaArr.length} no total)`:''}</div></div>
     </div>
 
     <h2>Ações</h2>
@@ -1901,15 +2617,15 @@ async function exportAnalisePDF(){
   const comSla=lista.map(a=>slaRealDias(a)).filter(x=>x!==null);
   const slaMed=comSla.length?comSla.reduce((s,v)=>s+v,0)/comSla.length:null;
 
-  const filtAcaoTxt=document.getElementById('fAcao').selectedOptions[0]?.text;
-  const filtRespTxt=document.getElementById('fResp').value;
-  const filtStatusTxt=document.getElementById('fStatus').selectedOptions[0]?.text;
-  const filtMesTxt=document.getElementById('fMes').selectedOptions[0]?.text;
+  const fAcaoL=msGetLabels('fAcao');
+  const fRespL=msGetLabels('fResp');
+  const fStatusL=msGetLabels('fStatus');
+  const fMesL=msGetLabels('fMes');
   const filtParts=[];
-  if(filtAcaoTxt && document.getElementById('fAcao').value)filtParts.push(`Ação: ${filtAcaoTxt}`);
-  if(filtRespTxt)filtParts.push(`Responsável: ${filtRespTxt}`);
-  if(filtStatusTxt && document.getElementById('fStatus').value)filtParts.push(`Status: ${filtStatusTxt}`);
-  if(filtMesTxt && document.getElementById('fMes').value)filtParts.push(`Mês: ${filtMesTxt}`);
+  if(fAcaoL.length)filtParts.push(`Ação: ${fAcaoL.join(', ')}`);
+  if(fRespL.length)filtParts.push(`Responsável: ${fRespL.join(', ')}`);
+  if(fStatusL.length)filtParts.push(`Status: ${fStatusL.join(', ')}`);
+  if(fMesL.length)filtParts.push(`Mês: ${fMesL.join(', ')}`);
   const filtrosTxt=filtParts.length?`Filtros: ${filtParts.join(' · ')}`:'Sem filtros aplicados';
 
   const insightsHTML=document.getElementById('painelInsights').innerHTML;
@@ -2113,7 +2829,7 @@ function resetAll(){
   STATE.acoes=[];
   STATE.config={pessoas:0,metaPorPessoa:0,diasTrabalhados:0,diasAtivos:[1,2,3,4,5]};
   ['cfgPessoas','cfgMeta','cfgDiasTrab'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
-  ['hRespFilter','hCumprFilter','hStatusFilter'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  ['hRespFilter','hCumprFilter','hStatusFilter','fAcao','fResp','fStatus','fMes'].forEach(id=>msClear(id));
   limparCamposSimulador();
   onConfigChange();renderAll();
   toast('Painel limpo.','');
@@ -2122,8 +2838,25 @@ function resetAll(){
 /* ============================================================
    INIT
 ============================================================ */
+function initMultiSelects(){
+  /* Opções fixas: SLA (cumprimento), Status (análise + histórico + analista) */
+  msSetOptions('hCumprFilter',[
+    {value:'sim',text:'SLA Cumprido'},
+    {value:'nao',text:'SLA Não Cumprido'}
+  ],renderTabela);
+  const statusOpts=[
+    {value:'planejada',text:'Planejada'},
+    {value:'andamento',text:'Em andamento'},
+    {value:'concluida',text:'Concluída'}
+  ];
+  msSetOptions('hStatusFilter',statusOpts,renderTabela);
+  msSetOptions('fStatus',statusOpts,renderAnalises);
+  msSetOptions('aStatus',statusOpts,renderAnalistas);
+}
+
 function init(){
   setupDropzone();
+  initMultiSelects();
   onConfigChange();
   renderAll();
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
